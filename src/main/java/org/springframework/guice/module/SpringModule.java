@@ -13,22 +13,21 @@
 
 package org.springframework.guice.module;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.springframework.beans.factory.BeanFactoryUtils;
-import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.beans.factory.support.AbstractBeanDefinition;
-import org.springframework.beans.factory.support.DefaultListableBeanFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.util.ClassUtils;
-
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Provider;
 import com.google.inject.ProvisionException;
 import com.google.inject.name.Names;
+import org.springframework.beans.factory.BeanFactoryUtils;
+import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.support.AbstractBeanDefinition;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.core.type.MethodMetadata;
+import org.springframework.util.ClassUtils;
+
+import java.util.*;
 
 /**
  * @author Dave Syer
@@ -59,6 +58,16 @@ public class SpringModule implements Module {
 			BeanDefinition definition = this.beanFactory.getBeanDefinition(name);
 			if (definition.isAutowireCandidate() && definition.getRole() == AbstractBeanDefinition.ROLE_APPLICATION) {
 				Class<?> type = this.beanFactory.getType(name);
+				if (definition instanceof AnnotatedBeanDefinition) {
+					try {
+						MethodMetadata metadata = ((AnnotatedBeanDefinition)definition).getFactoryMethodMetadata();
+						if (metadata != null) {
+							type = Class.forName(metadata.getReturnTypeName());
+						}
+					} catch (ClassNotFoundException e) {
+						throw new RuntimeException(e);
+					}
+				}
 				@SuppressWarnings("unchecked")
 				final Class<Object> cls = (Class<Object>) type;
 				final String beanName = name;
